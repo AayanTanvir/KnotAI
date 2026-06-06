@@ -4,9 +4,9 @@
     --background: #080808;
     --background-secondary: #0A0A0A;
     --foreground: #F7F7F0;
-    --foreground-dim: #F7F7F070;
+    --foreground-dim: #F7F7F025;
     --accent: #7BADA8;
-    --accent-dim: #7BADA830;
+    --accent-dim: #7BADA810;
 }
 
 @theme inline {

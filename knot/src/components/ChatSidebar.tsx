@@ -3,7 +3,7 @@ import { useChat } from "@/context/ChatContext";
 import { CircleUserRound } from "lucide-react";
 
 const ChatSidebar = () => {
-    const { setSelected } = useChat();
+    const { selected, setSelected } = useChat();
 
     const sampleKnots: Knot[] = [
         {
@@ -30,8 +30,9 @@ const ChatSidebar = () => {
                 {sampleKnots.map((knot) => (
                     <div
                     key={knot.id}
-                    className="w-full min-h-12 rounded-sm transition-colors hover:bg-accent-dim
-                               flex justify-start items-center px-3 py-1 gap-4 cursor-pointer"
+                    className={`w-full min-h-12 rounded-sm transition-colors hover:bg-accent-dim
+                               flex justify-start items-center px-3 py-1 gap-4 cursor-pointer
+                               ${selected?.id == knot.id ? "bg-accent-dim" : ""}`}
                     onClick={() => {setSelected(knot)}}
                     >
                         <CircleUserRound strokeWidth={1.5}/>
