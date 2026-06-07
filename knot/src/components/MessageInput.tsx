@@ -4,11 +4,10 @@ import { useRef, useState } from "react"
 import { ArrowUp } from "lucide-react"
 
 type MessageInputProps = {
-    onSend?: (message: string) => void
-    width?: string
+    onSend: (message: string) => void
 }
 
-export default function MessageInput({ onSend, width }: MessageInputProps) {
+export default function MessageInput({ onSend }: MessageInputProps) {
     const [value, setValue] = useState("")
     const [focused, setFocused] = useState(false)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -25,7 +24,7 @@ export default function MessageInput({ onSend, width }: MessageInputProps) {
     const handleSend = () => {
         const text = value.trim()
         if (!text) return
-        onSend?.(text)
+        onSend(text)
         setValue("")
         if (textareaRef.current) {
             textareaRef.current.style.height = "auto"

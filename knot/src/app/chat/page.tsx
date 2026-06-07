@@ -8,14 +8,46 @@ export default function ChatPage() {
     const { selected } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
 
-    function handleSendMessage(message: string) {
+    const displayMessage = ({ senderId, senderName, message }: Message) => {
         setMessages(prev => {
             return [...prev, {
-                senderId: 1,
-                senderName: "user",
+                senderId: senderId,
+                senderName: senderName,
                 message: message,
             }]
         });
+    }
+
+    const handleSendMessage = async (message: string) => {
+        displayMessage({
+            senderId: 1,
+            senderName: "user",
+            message: message
+        });
+
+        try {
+            const res = await fetch("/api/messages/", {
+                method: "POST",
+                body: JSON.stringify({ message: message }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+
+            const data = await res.json()
+            if (res.ok) {
+                displayMessage({
+                    senderId: 2,
+                    senderName: "usman",
+                    message: data.message
+                });
+            } else {
+                console.error("error occured: ", data.error)
+            }
+
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     if (selected) {
