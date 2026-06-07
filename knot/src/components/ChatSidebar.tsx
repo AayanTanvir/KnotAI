@@ -7,15 +7,15 @@ const ChatSidebar = () => {
 
     const sampleKnots: Knot[] = [
         {
-            id: 1,
+            id: 2,
             name: "Usman",
         },
         {
-            id: 2,
+            id: 3,
             name: "Merry",
         },
         {
-            id: 3,
+            id: 4,
             name: "Linda",
         },
     ]

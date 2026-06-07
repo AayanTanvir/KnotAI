@@ -15,6 +15,7 @@
     --color-foreground: var(--foreground);
     --color-foreground-dim: var(--foreground-dim);
     --color-accent: var(--accent);
+    --color-accent-dark: var(--accent-dark);
     --color-accent-dim: var(--accent-dim);
     --font-montserrat: var(--font-montserrat);
     --font-nunito: var(--font-nunito);

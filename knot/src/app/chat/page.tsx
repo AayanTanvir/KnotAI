@@ -2,9 +2,21 @@
 import MessageInput from "@/components/MessageInput";
 import { useChat } from "@/context/ChatContext";
 import { CircleUserRound } from "lucide-react";
+import { useState } from "react";
 
 export default function ChatPage() {
     const { selected } = useChat();
+    const [messages, setMessages] = useState<Message[]>([]);
+
+    function handleSendMessage(message: string) {
+        setMessages(prev => {
+            return [...prev, {
+                senderId: 1,
+                senderName: "user",
+                message: message,
+            }]
+        });
+    }
 
     if (selected) {
         return (
@@ -17,8 +29,29 @@ export default function ChatPage() {
                     <h1 className="text-xl font-nunito">{selected.name}</h1>
                 </div>
 
-                <div className="w-full flex-1 ">
-
+                <div className="w-full flex-1 flex justify-center overflow-hidden">
+                    <div className="w-full min-h-full flex flex-col items-start gap-4 py-6
+                                    overflow-y-auto px-[20%]">
+                        {messages.map((m, idx) => (
+                            <div
+                            className={
+                                `min-w-6 max-w-[80%] rounded-lg
+                                 p-2 px-2.5 border
+                                 ${m.senderId == 1 && m.senderName == "user"
+                                     ? "ml-auto bg-accent border-foreground-dim"
+                                     : "mr-auto bg-foreground-dim border-foreground-dim"
+                                 }`
+                            }
+                            key={idx}
+                            >
+                                <p className="text-lg font-nunito text-foreground
+                                              leading-relaxed whitespace-pre-wrap
+                                              wrap-break-word">
+                                    {m.message}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="w-full min-h-20 border-t border-foreground-dim
@@ -26,7 +59,7 @@ export default function ChatPage() {
 
                 >
                     <div className="w-[60%] h-full flex justify-center items-center">
-                        <MessageInput />
+                        <MessageInput onSend={handleSendMessage}/>
                     </div>
                 </div>
              </div>
