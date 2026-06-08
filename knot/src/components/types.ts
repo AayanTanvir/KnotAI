@@ -6,5 +6,6 @@ interface Knot {
 interface Message {
     senderId: number
     senderName: string
-    message: string
+    role: 'user' | 'assistant'
+    content: string
 }

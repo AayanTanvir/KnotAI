@@ -1,54 +1,88 @@
 "use client";
 import MessageInput from "@/components/MessageInput";
 import { useChat } from "@/context/ChatContext";
+import { splitIntoMessages } from "@/util/LLMUtils";
 import { CircleUserRound } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function ChatPage() {
     const { selected } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
 
-    const displayMessage = ({ senderId, senderName, message }: Message) => {
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTo({
+                top: scrollContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [messages]);
+
+    const displayMessage = ({ senderId, senderName, content }: Message) => {
         setMessages(prev => {
             return [...prev, {
                 senderId: senderId,
                 senderName: senderName,
-                message: message,
+                content: content,
+                role: senderId == 1 ? "user" : "assistant"
             }]
         });
     }
 
     const handleSendMessage = async (message: string) => {
-        displayMessage({
+        const newUserMessage: Message = {
             senderId: 1,
             senderName: "user",
-            message: message
-        });
+            content: message,
+            role: "user",
+        };
+
+        displayMessage(newUserMessage);
 
         try {
+            const chatHistory = messages.map(m => ({
+                role: m.role,
+                content: m.content
+            })).slice(-14);
+
+            const currentChatHistory = [
+                ...chatHistory,
+                { role: newUserMessage.role, content: newUserMessage.content }
+            ];
+
+            console.log(currentChatHistory);
+
             const res = await fetch("/api/messages/", {
                 method: "POST",
-                body: JSON.stringify({ message: message }),
+                body: JSON.stringify({ messages: currentChatHistory }),
                 headers: {
                     'Content-Type': 'application/json',
                 }
-            })
+            });
 
-            const data = await res.json()
+            const data = await res.json();
             if (res.ok) {
-                displayMessage({
-                    senderId: 2,
-                    senderName: "usman",
-                    message: data.message
-                });
+                console.log(data.message);
+                const resMessages = splitIntoMessages(data.message);
+
+                for (const message of resMessages) {
+                    displayMessage({
+                        senderId: 2,
+                        senderName: "usman",
+                        content: message,
+                        role: "assistant",
+                    });
+                }
             } else {
-                console.error("error occured: ", data.error)
+                console.error("error occurred: ", data.error);
             }
 
         } catch (err) {
-            console.error(err)
+            console.error(err);
         }
-    }
+    };
 
     if (selected) {
         return (
@@ -62,7 +96,7 @@ export default function ChatPage() {
                 </div>
 
                 <div className="w-full flex-1 flex justify-center overflow-hidden">
-                    <div className="w-full min-h-full flex flex-col items-start gap-4 py-6
+                    <div ref={scrollContainerRef} className="w-full min-h-full flex flex-col items-start gap-4 py-6
                                     overflow-y-auto px-[20%]">
                         {messages.map((m, idx) => (
                             <div
@@ -79,7 +113,7 @@ export default function ChatPage() {
                                 <p className="text-lg font-nunito text-foreground
                                               leading-relaxed whitespace-pre-wrap
                                               wrap-break-word">
-                                    {m.message}
+                                    {m.content}
                                 </p>
                             </div>
                         ))}
