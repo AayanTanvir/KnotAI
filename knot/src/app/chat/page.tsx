@@ -1,14 +1,14 @@
 "use client";
 import MessageInput from "@/components/MessageInput";
+import TypingIndicator from "@/components/TypingIndicator";
 import { useChat } from "@/context/ChatContext";
-import { splitIntoMessages } from "@/util/LLMUtils";
+import sendMessage, { displayMessage, getTypingDelay, processResponse, sleep } from "@/util/chatUtils";
 import { CircleUserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChatPage() {
-    const { selected } = useChat();
-    const [messages, setMessages] = useState<Message[]>([]);
-
+    const { selected, messages, setMessages } = useChat();
+    const [isReplying, setIsReplying] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -18,71 +18,25 @@ export default function ChatPage() {
                 behavior: 'smooth'
             });
         }
-    }, [messages]);
-
-    const displayMessage = ({ senderId, senderName, content }: Message) => {
-        setMessages(prev => {
-            return [...prev, {
-                senderId: senderId,
-                senderName: senderName,
-                content: content,
-                role: senderId == 1 ? "user" : "assistant"
-            }]
-        });
-    }
+    }, [messages, isReplying]);
 
     const handleSendMessage = async (message: string) => {
-        const newUserMessage: Message = {
-            senderId: 1,
-            senderName: "user",
-            content: message,
-            role: "user",
-        };
+        const rawResponse = await sendMessage(message, messages, setMessages);
+        const { processedResponse } = processResponse(rawResponse);
 
-        displayMessage(newUserMessage);
+        for (const msg of processedResponse) {
+            const sendDelay = getTypingDelay(msg.content);
+            console.log(sendDelay);
 
-        try {
-            const chatHistory = messages.map(m => ({
-                role: m.role,
-                content: m.content
-            })).slice(-14);
+            setIsReplying(true);
+            await sleep(sendDelay);
+            setIsReplying(false);
 
-            const currentChatHistory = [
-                ...chatHistory,
-                { role: newUserMessage.role, content: newUserMessage.content }
-            ];
+            displayMessage(msg, setMessages)
 
-            console.log(currentChatHistory);
-
-            const res = await fetch("/api/messages/", {
-                method: "POST",
-                body: JSON.stringify({ messages: currentChatHistory }),
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                console.log(data.message);
-                const resMessages = splitIntoMessages(data.message);
-
-                for (const message of resMessages) {
-                    displayMessage({
-                        senderId: 2,
-                        senderName: "usman",
-                        content: message,
-                        role: "assistant",
-                    });
-                }
-            } else {
-                console.error("error occurred: ", data.error);
-            }
-
-        } catch (err) {
-            console.error(err);
+            await sleep(300);
         }
-    };
+    }
 
     if (selected) {
         return (
@@ -103,7 +57,7 @@ export default function ChatPage() {
                             className={
                                 `min-w-6 max-w-[80%] rounded-lg
                                  p-2 px-2.5 border
-                                 ${m.senderId == 1 && m.senderName == "user"
+                                 ${m.role == "user"
                                      ? "ml-auto bg-accent border-foreground-dim"
                                      : "mr-auto bg-foreground-dim border-foreground-dim"
                                  }`
@@ -117,6 +71,7 @@ export default function ChatPage() {
                                 </p>
                             </div>
                         ))}
+                        <TypingIndicator isTyping={isReplying}/>
                     </div>
                 </div>
 
