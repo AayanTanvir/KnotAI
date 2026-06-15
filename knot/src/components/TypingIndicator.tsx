@@ -1,9 +1,9 @@
-"use client"
-import { motion, AnimatePresence } from "framer-motion"
+"use client";
+import { motion, AnimatePresence } from "framer-motion";
 
 type TypingIndicatorProps = {
-    isTyping: boolean
-}
+    isTyping: boolean;
+};
 
 const TypingIndicator = ({ isTyping }: TypingIndicatorProps) => {
     return (
@@ -16,7 +16,7 @@ const TypingIndicator = ({ isTyping }: TypingIndicatorProps) => {
                     transition={{ duration: 0.2 }}
                     className="w-12 h-6 px-2.5 py-4 rounded-full bg-foreground-dim flex justify-center items-center gap-1"
                 >
-                    {[0, 1, 2].map((i) => (
+                    {[0, 1, 2].map(i => (
                         <motion.div
                             key={i}
                             className="w-1.5 h-1.5 rounded-full bg-foreground"
@@ -32,7 +32,7 @@ const TypingIndicator = ({ isTyping }: TypingIndicatorProps) => {
                 </motion.div>
             )}
         </AnimatePresence>
-    )
-}
+    );
+};
 
-export default TypingIndicator
+export default TypingIndicator;

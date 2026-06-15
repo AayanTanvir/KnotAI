@@ -10,14 +10,6 @@ const ChatSidebar = () => {
             id: 2,
             name: "Usman",
         },
-        {
-            id: 3,
-            name: "Merry",
-        },
-        {
-            id: 4,
-            name: "Linda",
-        },
     ]
 
     return (
