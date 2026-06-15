@@ -120,4 +120,59 @@ export const getLatestReadMessageIdx = (messages: Message[]) => {
 
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+export const showTimestamp = (messages: Message[], idx: number): boolean => {
+    if (idx === 0) return true;
+
+    const current = messages[idx].timestamp;
+    const previous = messages[idx - 1].timestamp;
+
+    if (!current || !previous) return false;
+
+    const diffMinutes = (current - previous) / 1000 / 60;
+    return diffMinutes > 30;
+};
+
+export const formatGroupTime = (ts: number): string => {
+    const date = new Date(ts);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    if (isToday) {
+        return date
+            .toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true
+            })
+            .toUpperCase();
+    }
+
+    if (isYesterday) {
+        return (
+            "Yesterday " +
+            date
+                .toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true
+                })
+                .toUpperCase()
+        );
+    }
+
+    return date
+        .toLocaleDateString([], {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+        })
+        .toUpperCase();
+};
+
 export default sendMessage;

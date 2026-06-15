@@ -5,8 +5,10 @@ import TypingIndicator from "@/components/TypingIndicator";
 import { useChat } from "@/context/ChatContext";
 import sendMessage, {
     displayMessage,
+    formatGroupTime,
     getTypingDelay,
     processResponse,
+    showTimestamp,
     sleep
 } from "@/util/chatUtils";
 import { CircleUserRound } from "lucide-react";
@@ -62,7 +64,16 @@ export default function ChatPage() {
                                     overflow-y-auto px-[20%]"
                     >
                         {messages.map((m, idx) => (
-                            <MessageBubble messages={messages} idx={idx} msg={m} />
+                            <div className="w-full flex flex-col">
+                                {showTimestamp(messages, idx) && (
+                                    <div className="w-full flex justify-center my-1">
+                                        <span className="text-xs text-foreground-dim font-nunito">
+                                            {formatGroupTime(m.timestamp!)}
+                                        </span>
+                                    </div>
+                                )}
+                                <MessageBubble messages={messages} idx={idx} msg={m} />
+                            </div>
                         ))}
 
                         <TypingIndicator isTyping={isReplying} />
