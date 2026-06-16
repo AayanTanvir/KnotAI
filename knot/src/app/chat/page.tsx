@@ -8,6 +8,7 @@ import sendMessage, {
     formatGroupTime,
     getTypingDelay,
     processResponse,
+    randomBetween,
     showTimestamp,
     sleep
 } from "@/util/chatUtils";
@@ -30,11 +31,20 @@ export default function ChatPage() {
 
     const handleSendMessage = async (message: string) => {
         const rawResponse = await sendMessage(message, messages, setMessages);
-        const { processedResponse } = processResponse(rawResponse);
+        const { processedResponse, leftOnRead } = processResponse(rawResponse);
 
         console.log(rawResponse);
 
-        for (const msg of processedResponse) {
+        await sleep(randomBetween(1000, 5000));
+        setMessages(prev =>
+            prev.map(m =>
+                m.role === "user" && !m.isRead ? { ...m, isRead: true, readAt: Date.now() } : m
+            )
+        );
+
+        if (leftOnRead && processedResponse == null) return;
+
+        for (const msg of processedResponse!) {
             const sendDelay = getTypingDelay(msg.content);
             setIsReplying(true);
             await sleep(sendDelay);
@@ -64,7 +74,7 @@ export default function ChatPage() {
                                     overflow-y-auto px-[20%]"
                     >
                         {messages.map((m, idx) => (
-                            <div className="w-full flex flex-col">
+                            <div key={idx} className="w-full flex flex-col">
                                 {showTimestamp(messages, idx) && (
                                     <div className="w-full flex justify-center my-1">
                                         <span className="text-xs text-foreground-dim font-nunito">

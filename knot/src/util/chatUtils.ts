@@ -14,17 +14,6 @@ export const sendMessage = async (
 
     displayMessage(newUserMessage, setMessages);
 
-    // ADD LLM CALL HERE TO GET READ TIMING ACCORDING TO MOOD
-    await sleep(2500);
-
-    setMessages(prev =>
-        prev.map(m =>
-            m.timestamp === newUserMessage.timestamp
-                ? { ...m, isRead: true, readAt: Date.now() }
-                : m
-        )
-    );
-
     try {
         const lastMessages: Message[] = messages.slice(-14);
 
@@ -56,15 +45,22 @@ export const sendMessage = async (
 };
 
 export const processResponse = (rawResponse: string) => {
-    const processedResponse: Message[] = rawResponse
-        .split("<|>")
-        .map(l => l.trim())
-        .filter(l => l.length > 0)
-        .map(str => {
-            return { role: "assistant", content: str, timestamp: Date.now() };
-        });
+    const leftOnRead = rawResponse.includes("<!>");
+    let processedResponse: Message[] | null = null;
 
-    return { processedResponse };
+    if (!leftOnRead) {
+        processedResponse = rawResponse
+            .split("<|>")
+            .map(l => l.trim())
+            .filter(l => l.length > 0)
+            .map(str => {
+                return { role: "assistant", content: str, timestamp: Date.now() };
+            });
+    } else {
+        processedResponse = null;
+    }
+
+    return { processedResponse, leftOnRead };
 };
 
 export const getTypingDelay = (message: string) => {
@@ -119,6 +115,10 @@ export const getLatestReadMessageIdx = (messages: Message[]) => {
 };
 
 export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const randomBetween = (min: number, max: number) => {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
 export const showTimestamp = (messages: Message[], idx: number): boolean => {
     if (idx === 0) return true;

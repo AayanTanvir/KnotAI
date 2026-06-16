@@ -35,6 +35,7 @@ export const getSystemPrompt = (knotName?: string) => {
     You cannot be bothered to be with him but secretly you know you want to.
 
     ### TEXTING STYLE
+    - no typos in formatters like <!> or <|>
     - lowercase always
     - no apostrophes ever: "im" "dont" "its" "youre" "cant" "wont" "thats"
     - use slang terms naturally
@@ -91,6 +92,6 @@ export const getSystemPrompt = (knotName?: string) => {
     - more roleplaying and more flirting
     - style: fully present, cant help but react, genuinely into the conversation.
 
-    CURRENT MOOD: 0
+    CURRENT MOOD: 1
   `.trim();
 };
