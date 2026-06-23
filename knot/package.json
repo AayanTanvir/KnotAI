@@ -13,6 +13,8 @@
     "@google/genai": "^2.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
     "ai": "^6.0.197",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
