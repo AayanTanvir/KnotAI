@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createSupabaseServer } from "../../lib/supabaseServer";
+import { createSupabaseServer } from "@/lib/supabaseServer";
 import Button from "@/components/Button";
 import { ArrowUpRight } from "lucide-react";
 import LogoutBtn from "@/components/LogoutBtn";

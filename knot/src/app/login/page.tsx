@@ -1,7 +1,8 @@
 "use client";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "@/lib/supabase";
+import { getCurrentUser } from "@/util/utils";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -29,10 +30,15 @@ export default function LoginPage() {
         router.push("/chat");
     };
 
+    useEffect(() => {
+        getCurrentUser().then(user => {
+            if (user != null) router.push("/");
+        });
+    }, []);
+
     return (
         <div className="w-full h-full flex items-center justify-center bg-background">
             <div className="flex flex-col gap-6 w-full max-w-sm">
-                {/* Logo */}
                 <div className="flex flex-col gap-1 mb-2">
                     <h1 className="text-3xl font-nunito text-foreground">Knot AI</h1>
                     <p className="text-sm font-nunito text-foreground/40">
@@ -40,7 +46,6 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                {/* Fields */}
                 <div className="flex flex-col gap-3">
                     <input
                         type="email"
@@ -67,10 +72,8 @@ export default function LoginPage() {
                     />
                 </div>
 
-                {/* Error */}
                 {error && <p className="text-red-400 text-xs font-nunito">{error}</p>}
 
-                {/* Submit */}
                 <button
                     onClick={handleSubmit}
                     disabled={loading}
@@ -81,7 +84,6 @@ export default function LoginPage() {
                     {loading ? "..." : mode === "login" ? "Sign in" : "Create account"}
                 </button>
 
-                {/* Toggle */}
                 <p className="text-center text-xs font-nunito text-foreground/30">
                     {mode === "login" ? "Don't have an account? " : "Already have an account? "}
                     <button

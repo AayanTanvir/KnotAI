@@ -6,10 +6,11 @@ datasource db {
   provider  = "postgresql"
 }
 
-model Bot {
+model Knot {
   id        String   @id @default(uuid())
   userId    String
   name      String
+  personality       String
   mood      Int      @default(3)
   createdAt DateTime @default(now())
 }
