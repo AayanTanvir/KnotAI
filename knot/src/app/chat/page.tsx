@@ -4,21 +4,30 @@ import MessageInput from "@/components/MessageInput";
 import TypingIndicator from "@/components/TypingIndicator";
 import { useChat } from "@/context/ChatContext";
 import sendMessage, {
-    displayMessage,
     formatGroupTime,
     getTypingDelay,
-    processResponse,
     randomBetween,
     showTimestamp,
-    sleep
+    sleep,
+    fetchChatHistory
 } from "@/util/chatUtils";
 import { CircleUserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChatPage() {
-    const { selected, messages, setMessages } = useChat();
+    const { currentKnot, messages, setMessages } = useChat();
     const [isReplying, setIsReplying] = useState(false);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const syncHistory = async () => {
+            if (!currentKnot?.id) return;
+            const chatHistory = await fetchChatHistory(currentKnot.id);
+            setMessages(chatHistory);
+        };
+
+        syncHistory();
+    }, [currentKnot?.id]);
 
     useEffect(() => {
         if (scrollContainerRef.current) {
@@ -30,11 +39,18 @@ export default function ChatPage() {
     }, [messages, isReplying]);
 
     const handleSendMessage = async (message: string) => {
-        const rawResponse = await sendMessage(message, messages, setMessages);
-        const { processedResponse, leftOnRead } = processResponse(rawResponse);
+        const { response, leftOnRead } = await sendMessage(
+            message,
+            messages,
+            setMessages,
+            currentKnot!.id
+        );
 
-        console.log(rawResponse);
+        console.log(response);
 
+        // read user message after random delay
+        // TODO: need adjust with mood later
+        // TODO: update db msg
         await sleep(randomBetween(1000, 5000));
         setMessages(prev =>
             prev.map(m =>
@@ -42,21 +58,23 @@ export default function ChatPage() {
             )
         );
 
-        if (leftOnRead && processedResponse == null) return;
+        if (leftOnRead && response == null) return;
 
-        for (const msg of processedResponse!) {
+        for (const msg of response!) {
             const sendDelay = getTypingDelay(msg.content);
+
+            // -- SHOW TYPING INDICATOR FOR DURATION sendDelay --
             setIsReplying(true);
             await sleep(sendDelay);
             setIsReplying(false);
+            // --
 
-            displayMessage(msg, setMessages);
-
-            await sleep(300);
+            setMessages(prev => [...prev, msg]);
+            //displayMessage(msg, setMessages);
         }
     };
 
-    if (selected) {
+    if (currentKnot) {
         return (
             <div className="w-full h-full flex flex-col justify-start items-center">
                 <div
@@ -64,17 +82,17 @@ export default function ChatPage() {
                                 flex justify-start items-center px-4 gap-2"
                 >
                     <CircleUserRound strokeWidth={1.5} size={40} absoluteStrokeWidth />
-                    <h1 className="text-xl font-nunito">{selected.name}</h1>
+                    <h1 className="text-xl font-nunito">{currentKnot.name}</h1>
                 </div>
 
                 <div className="w-full flex-1 flex justify-center overflow-hidden">
                     <div
                         ref={scrollContainerRef}
-                        className="w-full min-h-full flex flex-col items-start gap-4 py-6
+                        className="w-full min-h-full flex flex-col items-start gap-2 py-6
                                     overflow-y-auto px-[20%]"
                     >
                         {messages.map((m, idx) => (
-                            <div key={idx} className="w-full flex flex-col">
+                            <div key={m.id} className="w-full flex flex-col">
                                 {showTimestamp(messages, idx) && (
                                     <div className="w-full flex justify-center my-1">
                                         <span className="text-xs text-foreground-dim font-nunito">

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Modal from "@/components/Modal";
 
 const ChatSidebar = () => {
-    const { selected, setSelected } = useChat();
+    const { currentKnot, setCurrentKnot } = useChat();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [name, setName] = useState("");
     const [personality, setPersonality] = useState("");
@@ -56,8 +56,8 @@ const ChatSidebar = () => {
                         key={knot.id}
                         className={`w-full min-h-12 rounded-sm transition-colors hover:bg-accent-dim
                                     flex justify-start items-center px-3 py-1 gap-4 cursor-pointer
-                                    ${selected?.id == knot.id ? "bg-accent-dim" : ""}`}
-                        onClick={() => setSelected(knot)}
+                                    ${currentKnot?.id == knot.id ? "bg-accent-dim" : ""}`}
+                        onClick={() => setCurrentKnot(knot)}
                     >
                         <CircleUserRound strokeWidth={1.5} />
                         <h1 className="text-lg font-nunito">{knot.name}</h1>

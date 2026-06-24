@@ -3,16 +3,20 @@ import { Dispatch, SetStateAction } from "react";
 export const sendMessage = async (
     message: string,
     messages: Message[],
-    setMessages: Dispatch<SetStateAction<Message[]>>
+    setMessages: Dispatch<SetStateAction<Message[]>>,
+    knotId: string
 ) => {
-    const newUserMessage: Message = {
-        role: "user",
+    // temporary
+    const newUserMessage = {
+        id: crypto.randomUUID(),
+        knotId,
+        role: "user" as const,
         content: message,
         isRead: false,
-        timestamp: Date.now()
+        timestamp: new Date()
     };
 
-    displayMessage(newUserMessage, setMessages);
+    setMessages(prev => [...prev, newUserMessage]);
 
     try {
         const lastMessages: Message[] = messages.slice(-14);
@@ -24,7 +28,11 @@ export const sendMessage = async (
 
         const res = await fetch("/api/messages/", {
             method: "POST",
-            body: JSON.stringify({ messages: chatHistory }),
+            body: JSON.stringify({
+                messages: chatHistory,
+                knotId,
+                content: message
+            }),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -33,34 +41,44 @@ export const sendMessage = async (
         const data = await res.json();
 
         if (res.ok) {
-            return data.message;
+            // replace temporary msg with db msg
+            setMessages(prev =>
+                prev.filter(msg => msg.id !== newUserMessage.id).concat(data.userMessage)
+            );
+
+            //return data.knotMessage.content;
+            return processResponse(data.knotMessage);
         } else {
             console.error("error occurred: ", data.error);
-            return null;
+            return { response: null, leftOnRead: false };
         }
     } catch (err) {
         console.error(err);
-        return null;
+        return { response: null, leftOnRead: false };
     }
 };
 
-export const processResponse = (rawResponse: string) => {
-    const leftOnRead = rawResponse.includes("<!>");
-    let processedResponse: Message[] | null = null;
+export const processResponse = (msg: Message) => {
+    const leftOnRead = msg.content.includes("<!>");
+    let response: Message[] | null = null;
 
     if (!leftOnRead) {
-        processedResponse = rawResponse
+        response = msg.content
             .split("<|>")
-            .map(l => l.trim())
-            .filter(l => l.length > 0)
-            .map(str => {
-                return { role: "assistant", content: str, timestamp: Date.now() };
+            .map(sentence => sentence.trim())
+            .filter(sentence => sentence.length > 0)
+            .map((sentence, idx) => {
+                return {
+                    ...msg,
+                    id: idx === 0 ? msg.id : `${msg.id}-split-${idx}`,
+                    content: sentence
+                };
             });
     } else {
-        processedResponse = null;
+        response = null;
     }
 
-    return { processedResponse, leftOnRead };
+    return { response, leftOnRead };
 };
 
 export const getTypingDelay = (message: string) => {
@@ -74,24 +92,6 @@ export const getTypingDelay = (message: string) => {
     const finalDelay = baseDelay * fluctuation;
 
     return Math.min(Math.max(finalDelay, 400), 4500);
-};
-
-export const displayMessage = (
-    { content, role, isRead = false, readAt = null, timestamp }: Message,
-    setMessages: Dispatch<SetStateAction<Message[]>>
-) => {
-    setMessages(prev => {
-        return [
-            ...prev,
-            {
-                content: content,
-                role: role,
-                isRead: isRead,
-                readAt: readAt,
-                timestamp: timestamp
-            }
-        ];
-    });
 };
 
 export const formatTime = (ts: number) => {
@@ -128,39 +128,37 @@ export const showTimestamp = (messages: Message[], idx: number): boolean => {
 
     if (!current || !previous) return false;
 
-    const diffMinutes = (current - previous) / 1000 / 60;
+    const diffMinutes = (new Date(current).getTime() - new Date(previous).getTime()) / 1000 / 60;
+
     return diffMinutes > 30;
 };
 
-export const formatGroupTime = (ts: number): string => {
+export const formatGroupTime = (ts: Date): string => {
     const date = new Date(ts);
     const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
 
-    if (isToday) {
-        return date
-            .toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true
-            })
-            .toUpperCase();
+    const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
+    const yesterdayStr = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - 1
+    ).toDateString();
+    const targetStr = date.toDateString();
+
+    const timeString = date
+        .toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+        })
+        .toUpperCase();
+
+    if (targetStr === todayStr) {
+        return timeString;
     }
 
-    if (isYesterday) {
-        return (
-            "Yesterday " +
-            date
-                .toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true
-                })
-                .toUpperCase()
-        );
+    if (targetStr === yesterdayStr) {
+        return `Yesterday ${timeString}`;
     }
 
     return date
@@ -173,6 +171,42 @@ export const formatGroupTime = (ts: number): string => {
             hour12: true
         })
         .toUpperCase();
+};
+
+export const fetchChatHistory = async (knotId: string): Promise<Message[]> => {
+    try {
+        const res = await fetch(`/api/messages?knotId=${knotId}`, {
+            method: "GET"
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            // process assistant msgs and split
+            let processedChat: Message[] = [];
+
+            for (const msg of data.messages) {
+                if (msg.role === "assistant") {
+                    const { response } = processResponse(msg);
+                    if (response) {
+                        processedChat.push(...response);
+                    } else {
+                        processedChat.push(msg);
+                    }
+                } else {
+                    processedChat.push(msg);
+                }
+            }
+
+            return processedChat;
+        } else {
+            console.error("Failed to fetch chat history:", data.error);
+            return [];
+        }
+    } catch (err) {
+        console.error("Network error fetching chat history:", err);
+        return [];
+    }
 };
 
 export default sendMessage;

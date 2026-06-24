@@ -6,11 +6,32 @@ datasource db {
   provider  = "postgresql"
 }
 
+enum Role {
+  USER
+  ASSISTANT
+}
+
 model Knot {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  personality       String
-  mood      Int      @default(3)
-  createdAt DateTime @default(now())
+    id        String   @id @default(uuid())
+    userId    String
+    name      String
+    personality String
+    mood      Int      @default(3)
+    createdAt DateTime @default(now())
+    messages    Message[]
+}
+
+model Message {
+    id         String   @id @default(uuid())
+    content    String
+    role       Role
+
+    isRead     Boolean  @default(false)
+    readAt     DateTime?
+    timestamp  DateTime @default(now())
+
+    knotId    String
+    knot      Knot      @relation(fields: [knotId], references: [id], onDelete: Cascade)
+
+    @@index([knotId])
 }
