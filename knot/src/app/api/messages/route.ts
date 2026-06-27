@@ -22,6 +22,20 @@ export async function POST(request: NextRequest) {
 
         const res = await callLLM(messages, 3);
 
+        console.log("response: ", res.text);
+        // If message is ignored, don't save or send back.
+        if (res.text.includes("<!>")) {
+            return NextResponse.json({
+                userMessage: {
+                    ...dbUserMessage,
+                    role: dbUserMessage.role.toLowerCase() as "user"
+                },
+                knotMessage: {
+                    hasIgnored: true
+                }
+            });
+        }
+
         const dbKnotMessage = await prisma.message.create({
             data: {
                 knotId,

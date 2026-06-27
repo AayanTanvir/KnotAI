@@ -46,8 +46,11 @@ export const sendMessage = async (
                 prev.filter(msg => msg.id !== newUserMessage.id).concat(data.userMessage)
             );
 
-            //return data.knotMessage.content;
-            return processResponse(data.knotMessage);
+            if (data.knotMessage?.hasIgnored) {
+                return { response: null, leftOnRead: true };
+            }
+
+            return { response: processResponse(data.knotMessage), leftOnRead: false };
         } else {
             console.error("error occurred: ", data.error);
             return { response: null, leftOnRead: false };
@@ -59,26 +62,21 @@ export const sendMessage = async (
 };
 
 export const processResponse = (msg: Message) => {
-    const leftOnRead = msg.content.includes("<!>");
     let response: Message[] | null = null;
 
-    if (!leftOnRead) {
-        response = msg.content
-            .split("<|>")
-            .map(sentence => sentence.trim())
-            .filter(sentence => sentence.length > 0)
-            .map((sentence, idx) => {
-                return {
-                    ...msg,
-                    id: idx === 0 ? msg.id : `${msg.id}-split-${idx}`,
-                    content: sentence
-                };
-            });
-    } else {
-        response = null;
-    }
+    response = msg.content
+        .split("<|>")
+        .map(sentence => sentence.trim())
+        .filter(sentence => sentence.length > 0)
+        .map((sentence, idx) => {
+            return {
+                ...msg,
+                id: idx === 0 ? msg.id : `${msg.id}-split-${idx}`,
+                content: sentence
+            };
+        });
 
-    return { response, leftOnRead };
+    return response;
 };
 
 export const getTypingDelay = (message: string) => {
@@ -94,17 +92,22 @@ export const getTypingDelay = (message: string) => {
     return Math.min(Math.max(finalDelay, 400), 4500);
 };
 
-export const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit"
-    });
+export const formatTime = (dateInput: Date | string) => {
+    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+
+    return date
+        .toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+        })
+        .replace(/\s/g, "")
+        .toUpperCase();
 };
 
 export const getLatestReadMessageIdx = (messages: Message[]) => {
     const latestUserMsg = messages.filter(m => m.role === "user").at(-1);
 
-    if (messages.at(-1)?.role == "assistant" || (latestUserMsg && !latestUserMsg?.isRead)) {
+    if (messages.at(-1)?.role == "assistant" || !latestUserMsg?.isRead) {
         return undefined;
     }
 
@@ -187,7 +190,7 @@ export const fetchChatHistory = async (knotId: string): Promise<Message[]> => {
 
             for (const msg of data.messages) {
                 if (msg.role === "assistant") {
-                    const { response } = processResponse(msg);
+                    const response = processResponse(msg);
                     if (response) {
                         processedChat.push(...response);
                     } else {
@@ -206,6 +209,39 @@ export const fetchChatHistory = async (knotId: string): Promise<Message[]> => {
     } catch (err) {
         console.error("Network error fetching chat history:", err);
         return [];
+    }
+};
+
+export const updateMessage = async (
+    msgId: string,
+    isRead?: boolean,
+    readAt?: Date | string,
+    content?: string
+): Promise<Message | undefined> => {
+    if (isRead === undefined && readAt === undefined && content === undefined) return;
+
+    try {
+        const res = await fetch(`/api/messages/${msgId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                isRead,
+                readAt,
+                content
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            return data.message;
+        } else {
+            console.error("Failed to update message:", data.error);
+        }
+    } catch (err) {
+        console.error("Network error updating message:", err);
     }
 };
 

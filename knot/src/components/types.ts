@@ -14,6 +14,6 @@ interface Message {
     role: "user" | "assistant";
     content: string;
     isRead?: boolean;
-    readAt?: number | null;
+    readAt?: Date | null;
     timestamp: Date;
 }

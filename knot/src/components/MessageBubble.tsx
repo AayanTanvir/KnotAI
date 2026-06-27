@@ -10,6 +10,7 @@ type MessageBubbleProps = {
 
 const MessageBubble = ({ msg, idx, messages }: MessageBubbleProps) => {
     const isUser = msg.role === "user";
+    const isLatest = messages.at(-1)?.id === msg.id;
 
     return (
         <motion.div
@@ -37,7 +38,7 @@ const MessageBubble = ({ msg, idx, messages }: MessageBubbleProps) => {
                     {msg.content}
                 </p>
             </div>
-            <ReadIndicator messages={messages} msgIdx={idx} />
+            {isUser && isLatest && msg.isRead && msg.readAt && <ReadIndicator message={msg} />}
         </motion.div>
     );
 };

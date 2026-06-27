@@ -9,7 +9,8 @@ import sendMessage, {
     randomBetween,
     showTimestamp,
     sleep,
-    fetchChatHistory
+    fetchChatHistory,
+    updateMessage
 } from "@/util/chatUtils";
 import { CircleUserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -46,16 +47,22 @@ export default function ChatPage() {
             currentKnot!.id
         );
 
-        console.log(response);
-
         // read user message after random delay
         // TODO: need adjust with mood later
-        // TODO: update db msg
         await sleep(randomBetween(1000, 5000));
+
+        // Update readAt, isRead
         setMessages(prev =>
-            prev.map(m =>
-                m.role === "user" && !m.isRead ? { ...m, isRead: true, readAt: Date.now() } : m
-            )
+            prev.map(msg => {
+                if (msg.role === "user" && !msg.isRead) {
+                    const now = new Date();
+
+                    updateMessage(msg.id, true, now);
+
+                    return { ...msg, isRead: true, readAt: now };
+                }
+                return msg;
+            })
         );
 
         if (leftOnRead && response == null) return;
@@ -70,7 +77,6 @@ export default function ChatPage() {
             // --
 
             setMessages(prev => [...prev, msg]);
-            //displayMessage(msg, setMessages);
         }
     };
 
