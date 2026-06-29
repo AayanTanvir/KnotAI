@@ -80,7 +80,7 @@ export const processResponse = (msg: Message) => {
 };
 
 export const getTypingDelay = (message: string) => {
-    const charactersPerSecond = 18;
+    const charactersPerSecond = 6;
     const typingTime = (message.length / charactersPerSecond) * 1000;
 
     const humanReactionTime = 300;
@@ -102,25 +102,6 @@ export const formatTime = (dateInput: Date | string) => {
         })
         .replace(/\s/g, "")
         .toUpperCase();
-};
-
-export const getLatestReadMessageIdx = (messages: Message[]) => {
-    const latestUserMsg = messages.filter(m => m.role === "user").at(-1);
-
-    if (messages.at(-1)?.role == "assistant" || !latestUserMsg?.isRead) {
-        return undefined;
-    }
-
-    return messages
-        .map((m, idx) => ({ m, idx }))
-        .filter(({ m }) => m.role === "user" && m.isRead)
-        .at(-1)?.idx;
-};
-
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-export const randomBetween = (min: number, max: number) => {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
 };
 
 export const showTimestamp = (messages: Message[], idx: number): boolean => {
@@ -243,6 +224,27 @@ export const updateMessage = async (
     } catch (err) {
         console.error("Network error updating message:", err);
     }
+};
+
+export const getLatestMsgs = (messages: Message[], depth: number): Message[] => {
+    let userCount = 0;
+    let targetIndex = 0;
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+            userCount++;
+            if (userCount === depth) {
+                targetIndex = i;
+                break;
+            }
+        }
+    }
+
+    if (userCount < depth) {
+        return messages;
+    }
+
+    return messages.slice(targetIndex);
 };
 
 export default sendMessage;

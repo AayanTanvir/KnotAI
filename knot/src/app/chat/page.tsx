@@ -5,31 +5,21 @@ import TypingIndicator from "@/components/TypingIndicator";
 import { useChat } from "@/context/ChatContext";
 import sendMessage, {
     formatGroupTime,
+    getLatestMsgs,
     getTypingDelay,
-    randomBetween,
     showTimestamp,
-    sleep,
-    fetchChatHistory,
     updateMessage
 } from "@/util/chatUtils";
+import { randomBetween, setLocalStorageItem, sleep } from "@/util/utils";
 import { CircleUserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChatPage() {
-    const { currentKnot, messages, setMessages } = useChat();
+    const { currentKnot, messages, setMessages, userMsgCount, setUserMsgCount } = useChat();
     const [isReplying, setIsReplying] = useState(false);
+
+    // auto scroll on new message
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        const syncHistory = async () => {
-            if (!currentKnot?.id) return;
-            const chatHistory = await fetchChatHistory(currentKnot.id);
-            setMessages(chatHistory);
-        };
-
-        syncHistory();
-    }, [currentKnot?.id]);
-
     useEffect(() => {
         if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollTo({
@@ -50,8 +40,27 @@ export default function ChatPage() {
         // read user message after random delay
         // TODO: need adjust with mood later
         await sleep(randomBetween(1000, 5000));
+        readMsgs();
 
-        // Update readAt, isRead
+        await handleMoodEvaluation(5);
+
+        if (leftOnRead && response == null) return;
+
+        // Display message with typing indicator
+        for (const msg of response!) {
+            const sendDelay = getTypingDelay(msg.content);
+
+            // -- SHOW TYPING INDICATOR FOR DURATION sendDelay --
+            setIsReplying(true);
+            await sleep(sendDelay);
+            setIsReplying(false);
+            // --
+
+            setMessages(prev => [...prev, msg]);
+        }
+    };
+
+    const readMsgs = () => {
         setMessages(prev =>
             prev.map(msg => {
                 if (msg.role === "user" && !msg.isRead) {
@@ -64,19 +73,32 @@ export default function ChatPage() {
                 return msg;
             })
         );
+    };
 
-        if (leftOnRead && response == null) return;
+    // Handle mood every n messages
+    const handleMoodEvaluation = async (n: number) => {
+        const nextCount = userMsgCount + 1;
+        if (nextCount >= n) {
+            //const newMood = await evaluateMood(currentKnot!, getLatestMsgs(messages, 5));
 
-        for (const msg of response!) {
-            const sendDelay = getTypingDelay(msg.content);
+            const res = await fetch(`/api/knots/${currentKnot?.id}/evaluate-mood`, {
+                method: "POST",
+                body: JSON.stringify({
+                    messages: getLatestMsgs(messages, n)
+                }),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
 
-            // -- SHOW TYPING INDICATOR FOR DURATION sendDelay --
-            setIsReplying(true);
-            await sleep(sendDelay);
-            setIsReplying(false);
-            // --
+            const data = await res.json();
+            console.log("New mood: ", data.mood);
 
-            setMessages(prev => [...prev, msg]);
+            setUserMsgCount(0);
+            setLocalStorageItem("user_msg_count", 0);
+        } else {
+            setUserMsgCount(nextCount);
+            setLocalStorageItem("user_msg_count", nextCount);
         }
     };
 
@@ -106,7 +128,7 @@ export default function ChatPage() {
                                         </span>
                                     </div>
                                 )}
-                                <MessageBubble messages={messages} idx={idx} msg={m} />
+                                <MessageBubble messages={messages} msg={m} />
                             </div>
                         ))}
 

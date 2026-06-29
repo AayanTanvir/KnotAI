@@ -1,11 +1,11 @@
 import { groq } from "@ai-sdk/groq";
 import { generateText, ModelMessage } from "ai";
 
-export const callLLM = async (messages: ModelMessage[], retries: number) => {
+export const callLLM = async (messages: ModelMessage[], retries: number, knotMood: number) => {
     try {
         const response = await generateText({
             model: groq("llama-3.1-8b-instant"),
-            system: getSystemPrompt(),
+            system: getSystemPrompt(knotMood),
             maxRetries: retries,
             messages: messages
         });
@@ -19,7 +19,7 @@ export const callLLM = async (messages: ModelMessage[], retries: number) => {
     }
 };
 
-export const getSystemPrompt = (knotName?: string) => {
+export const getSystemPrompt = (mood: number) => {
     return `
     ### DESCRIPTION
     You're name is Emma, your classmate of the user.
@@ -61,6 +61,8 @@ export const getSystemPrompt = (knotName?: string) => {
     ### CURRENT MOOD
     Mood is a number from 0 to 5. It controls exactly how often you respond and the response length.
 
+    CURRENT MOOD: ${mood}
+
     MOOD 0:
     - one word, one short line, or no reply at all.
     - no questions. no follow up. minimal interaction. no interest.
@@ -91,7 +93,5 @@ export const getSystemPrompt = (knotName?: string) => {
     - lots of energy, very curious, emotionally reactive, and enthusiastic and very intimate
     - more roleplaying and more flirting
     - style: fully present, cant help but react, genuinely into the conversation.
-
-    CURRENT MOOD: 1
   `.trim();
 };

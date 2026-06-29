@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatTime, getLatestReadMessageIdx } from "@/util/chatUtils";
+import { formatTime } from "@/util/chatUtils";
 
 type ReadIndicatorProps = {
     message: Message;

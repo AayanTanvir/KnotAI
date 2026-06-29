@@ -6,8 +6,14 @@ import { createSupabaseServer } from "@/lib/supabaseServer";
 export async function POST(request: NextRequest) {
     try {
         const { messages, knotId, content } = await request.json();
+        const supabase = await createSupabaseServer();
+        const {
+            data: { user }
+        } = await supabase.auth.getUser();
 
-        if (!knotId || !content) {
+        if (!user) {
+            return Response.json({ error: "Unauthorized" }, { status: 401 });
+        } else if (!knotId || !content) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
@@ -20,9 +26,17 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        const res = await callLLM(messages, 3);
+        const knot = await prisma.knot.findFirst({
+            where: { id: knotId, userId: user.id },
+            select: { mood: true }
+        });
 
-        console.log("response: ", res.text);
+        if (!knot) {
+            return Response.json({ error: "Knot not found" }, { status: 400 });
+        }
+
+        const res = await callLLM(messages, 3, knot!.mood);
+
         // If message is ignored, don't save or send back.
         if (res.text.includes("<!>")) {
             return NextResponse.json({

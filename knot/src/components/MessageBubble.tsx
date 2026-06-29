@@ -4,11 +4,10 @@ import ReadIndicator from "./ReadIndicator";
 
 type MessageBubbleProps = {
     msg: Message;
-    idx: number;
     messages: Message[];
 };
 
-const MessageBubble = ({ msg, idx, messages }: MessageBubbleProps) => {
+const MessageBubble = ({ msg, messages }: MessageBubbleProps) => {
     const isUser = msg.role === "user";
     const isLatest = messages.at(-1)?.id === msg.id;
 
