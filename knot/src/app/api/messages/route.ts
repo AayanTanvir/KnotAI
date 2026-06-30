@@ -1,7 +1,9 @@
-import { callLLM } from "@/util/llmUtils";
+import { getSystemPrompt } from "@/util/llmUtils";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServer } from "@/lib/supabaseServer";
+import { generateText } from "ai";
+import { groq } from "@ai-sdk/groq";
 
 export async function POST(request: NextRequest) {
     try {
@@ -28,17 +30,31 @@ export async function POST(request: NextRequest) {
 
         const knot = await prisma.knot.findFirst({
             where: { id: knotId, userId: user.id },
-            select: { mood: true }
+            select: { mood: true, name: true, personality: true }
         });
 
         if (!knot) {
             return Response.json({ error: "Knot not found" }, { status: 400 });
         }
 
-        const res = await callLLM(messages, 3, knot!.mood);
+        let responseMsg = "";
+
+        try {
+            const res = await generateText({
+                model: groq("llama-3.1-8b-instant"),
+                system: getSystemPrompt(knot.mood, knot.name, knot.personality),
+                maxRetries: 3,
+                messages: messages
+            });
+
+            responseMsg = res.text;
+        } catch (error) {
+            console.error("SDK request failed after maximum retries:", error);
+            return Response.json({ error: "Request failed" }, { status: 400 });
+        }
 
         // If message is ignored, don't save or send back.
-        if (res.text.includes("<!>")) {
+        if (responseMsg.includes("<!>")) {
             return NextResponse.json({
                 userMessage: {
                     ...dbUserMessage,
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
             data: {
                 knotId,
                 role: "ASSISTANT",
-                content: res.text,
+                content: responseMsg,
                 isRead: false
             }
         });
