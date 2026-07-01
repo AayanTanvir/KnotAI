@@ -1,23 +1,17 @@
 "use client";
 import { useChat } from "@/context/ChatContext";
-import { CircleUserRound } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Modal from "@/components/Modal";
+import ProfilePicture from "./ProfilePicture";
+import { useGlobal } from "@/context/GlobalContext";
 
 const ChatSidebar = () => {
     const { currentKnot, setCurrentKnot } = useChat();
+    const { userKnots, setUserKnots } = useGlobal();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [name, setName] = useState("");
     const [personality, setPersonality] = useState("");
     const [loading, setLoading] = useState(false);
-    const [knots, setKnots] = useState<Knot[]>([]);
-
-    useEffect(() => {
-        fetch("/api/knots")
-            .then(res => res.json())
-            .then(data => setKnots(data.knots ?? []))
-            .catch(err => console.error("Failed to fetch knots:", err));
-    }, []);
 
     const handleCreate = async () => {
         if (!name.trim()) return;
@@ -32,7 +26,7 @@ const ChatSidebar = () => {
         const data = await res.json();
 
         if (res.ok) {
-            setKnots(prev => [data.knot, ...prev]);
+            setUserKnots(prev => [data.knot, ...prev]);
             setIsModalOpen(false);
             setName("");
             setPersonality("");
@@ -51,7 +45,7 @@ const ChatSidebar = () => {
             <h1 className="text-xl lg:text-2xl font-semibold text-foreground">Knot AI</h1>
 
             <div className="w-full flex-1 mt-5 flex flex-col justify-start items-start gap-2">
-                {knots.map(knot => (
+                {userKnots.map(knot => (
                     <div
                         key={knot.id}
                         className={`w-full min-h-12 rounded-sm transition-colors hover:bg-accent-dim
@@ -59,7 +53,7 @@ const ChatSidebar = () => {
                                     ${currentKnot?.id == knot.id ? "bg-accent-dim" : ""}`}
                         onClick={() => setCurrentKnot(knot)}
                     >
-                        <CircleUserRound strokeWidth={1.5} />
+                        <ProfilePicture mood={knot.mood} />
                         <h1 className="text-lg font-nunito">{knot.name}</h1>
                     </div>
                 ))}

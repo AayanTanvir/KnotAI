@@ -1,6 +1,7 @@
 "use client";
 import MessageBubble from "@/components/MessageBubble";
 import MessageInput from "@/components/MessageInput";
+import ProfilePicture from "@/components/ProfilePicture";
 import TypingIndicator from "@/components/TypingIndicator";
 import { useChat } from "@/context/ChatContext";
 import sendMessage, {
@@ -11,7 +12,6 @@ import sendMessage, {
     updateMessage
 } from "@/util/chatUtils";
 import { randomBetween, setLocalStorageItem, sleep } from "@/util/utils";
-import { CircleUserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function ChatPage() {
@@ -109,7 +109,7 @@ export default function ChatPage() {
                     className="w-full min-h-16 border-b border-foreground-dim
                                 flex justify-start items-center px-4 gap-2"
                 >
-                    <CircleUserRound strokeWidth={1.5} size={40} absoluteStrokeWidth />
+                    <ProfilePicture size={35} mood={currentKnot.mood} />
                     <h1 className="text-xl font-nunito">{currentKnot.name}</h1>
                 </div>
 
